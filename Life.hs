@@ -36,10 +36,10 @@ worldHeight = 309
 -- Lenses
 
 world :: Lens' LifeCast LifeWorld
-world f (LifeCast r w) = fmap (\w' -> LifeCast r w') (f w)
+world f (LifeCast r w) = fmap (LifeCast r) (f w)
 
 running :: Lens' LifeCast Bool
-running f (LifeCast r w) = fmap (\r' -> LifeCast r' w) (f r)
+running f (LifeCast r w) = fmap (`LifeCast` w) (f r)
 
 -- | Moore neighborhood
 
