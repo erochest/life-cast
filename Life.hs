@@ -86,15 +86,15 @@ colorWorld = R.map cellColor . getWorld
 
 -- | Generating the next generation
 
-step :: LifeWorld -> LifeWorld
-step w = World . computeS . R.traverse (getWorld w) id $ \getter pos ->
+step :: LifeWorld -> IO LifeWorld
+step w = fmap World . computeP . R.traverse (getWorld w) id $ \getter pos ->
       conway (getter pos). length . filter id . map getter
     $ mooreNeighborhood worldExtent pos
     where worldExtent = extent $ getWorld w
 
-stepCast :: LifeCast -> LifeCast
-stepCast lc@(LifeCast True  _) = over world step lc
-stepCast lc@(LifeCast False _) = lc
+stepCast :: LifeCast -> IO LifeCast
+stepCast lc@(LifeCast True  w) = LifeCast True <$> step w
+stepCast lc@(LifeCast False _) = return lc
 
 -- Rules
 conway :: Bool -> Int -> Bool
@@ -107,19 +107,19 @@ randomWorld w h = withSystemRandom . asGenIO $ \gen ->
         World . fromUnboxed (ix2 h w)
     <$> (uniformVector gen (w * h) :: IO (V.Vector Bool))
 
-onEvent :: Event -> LifeCast -> LifeCast
-onEvent (EventKey (SpecialKey KeySpace) Up _ _) = over running not
-onEvent _                                       = id
+onEvent :: Event -> LifeCast -> IO LifeCast
+onEvent (EventKey (SpecialKey KeySpace) Up _ _) = return . over running not
+onEvent _                                       = return
 
 main :: IO ()
 main = do
     initial <- LifeCast False <$> randomWorld worldWidth worldHeight
-    playArray (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
-              (2, 2)
-              5
-              initial
-              (colorWorld . _world)
-              onEvent
-              (const stepCast)
+    playArrayIO (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
+                (2, 2)
+                7
+                initial
+                (return . colorWorld . _world)
+                onEvent
+                (const stepCast)
     where tow = (*2)
 
