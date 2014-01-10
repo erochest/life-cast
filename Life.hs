@@ -27,6 +27,9 @@ data LifeCast = LifeCast
 
 -- Settings
 
+worldScale :: Int
+worldScale = 3
+
 worldWidth :: Int
 worldWidth = 500
 
@@ -115,11 +118,11 @@ main :: IO ()
 main = do
     initial <- LifeCast False <$> randomWorld worldWidth worldHeight
     playArrayIO (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
-                (2, 2)
+                (worldScale, worldScale)
                 7
                 initial
                 (return . colorWorld . _world)
                 onEvent
                 (const stepCast)
-    where tow = (*2)
+    where tow = (*worldScale)
 
