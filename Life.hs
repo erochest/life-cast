@@ -6,9 +6,10 @@ module Main where
 import           Control.Applicative
 import           Control.Lens
 import           Control.Monad
-import           Data.Array.Repa                    hiding ((++), map)
+import           Data.Array.Repa                    hiding (map, (++))
 import qualified Data.Array.Repa                    as R
-import qualified Data.Vector.Unboxed                as V
+import           Data.Array.Repa.Repr.Vector
+import qualified Data.Vector                        as V
 import           Graphics.Gloss
 import           Graphics.Gloss.Interface.Pure.Game
 import           Graphics.Gloss.Raster.Array
@@ -16,9 +17,21 @@ import           System.Random.MWC
 
 data Hole = Hole
 
-newtype World a = World { getWorld :: Array U DIM2 a }
+newtype World a = World { getWorld :: Array V DIM2 a }
 
-type LifeWorld = World Bool
+data WorldState = Off
+                | On
+                | Dying
+                deriving (Show, Enum, Bounded)
+
+scaleFromInt :: Int -> WorldState
+scaleFromInt = toEnum . (`mod` 2)
+
+instance Variate WorldState where
+    uniform = return . scaleFromInt <=< uniform
+    uniformR (f, t) = return . scaleFromInt <=< uniformR (fromEnum f, fromEnum t)
+
+type LifeWorld = World WorldState
 
 data LifeCast = LifeCast
               { _running :: Bool
@@ -28,7 +41,7 @@ data LifeCast = LifeCast
 -- Settings
 
 worldScale :: Int
-worldScale = 3
+worldScale = 2
 
 worldWidth :: Int
 worldWidth = 500
@@ -80,9 +93,10 @@ mooreNeighborhood extent pos =
 
 -- | Display and colors
 
-cellColor :: Bool -> Color
-cellColor True  = dim red
-cellColor False = light black
+cellColor :: WorldState -> Color
+cellColor On    = dim red
+cellColor Off   = light black
+cellColor Dying = dim $ dim blue
 
 colorWorld :: LifeWorld -> Array D DIM2 Color
 colorWorld = R.map cellColor . getWorld
@@ -91,7 +105,7 @@ colorWorld = R.map cellColor . getWorld
 
 step :: LifeWorld -> IO LifeWorld
 step w = fmap World . computeP . R.traverse (getWorld w) id $ \getter pos ->
-      conway (getter pos). length . filter id . map getter
+      conway (getter pos) . length . filter isAlive . map getter
     $ mooreNeighborhood worldExtent pos
     where worldExtent = extent $ getWorld w
 
@@ -100,15 +114,23 @@ stepCast lc@(LifeCast True  w) = LifeCast True <$> step w
 stepCast lc@(LifeCast False _) = return lc
 
 -- Rules
-conway :: Bool -> Int -> Bool
+
+conway :: WorldState -> Int -> WorldState
+conway Dying   2 = Off
 conway current 2 = current
-conway _       3 = True
-conway _       _ = False
+conway _       3 = On
+conway On      _ = Dying
+conway _       _ = Off
+
+isAlive :: WorldState -> Bool
+isAlive On    = True
+isAlive Off   = False
+isAlive Dying = False
 
 randomWorld :: Int -> Int -> IO LifeWorld
 randomWorld w h = withSystemRandom . asGenIO $ \gen ->
-        World . fromUnboxed (ix2 h w)
-    <$> (uniformVector gen (w * h) :: IO (V.Vector Bool))
+        World . fromVector (ix2 h w)
+    <$> (uniformVector gen (w * h) :: IO (V.Vector WorldState))
 
 onEvent :: Event -> LifeCast -> IO LifeCast
 onEvent (EventKey (SpecialKey KeySpace) Up _ _) = return . over running not
