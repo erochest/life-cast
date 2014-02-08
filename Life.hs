@@ -3,6 +3,12 @@
 
 module Main where
 
+-- WaTor todos
+-- [ ] New cell states
+-- [ ] New rules (different rules for different items)
+-- [ ] Pass in whole neighborhood, not just counts
+-- [ ] Settings for initial distribution
+
 import           Control.Applicative
 import           Control.Lens
 import           Control.Monad
