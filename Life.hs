@@ -25,7 +25,7 @@ data WorldState = Off
                 deriving (Show, Enum, Bounded)
 
 scaleFromInt :: Int -> WorldState
-scaleFromInt = toEnum . (`mod` 2)
+scaleFromInt = toEnum . (`mod` 3)
 
 instance Variate WorldState where
     uniform = return . scaleFromInt <=< uniform
