@@ -141,7 +141,7 @@ main = do
     initial <- LifeCast False <$> randomWorld worldWidth worldHeight
     playArrayIO (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
                 (worldScale, worldScale)
-                7
+                10
                 initial
                 (return . colorWorld . _world)
                 onEvent
