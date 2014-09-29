@@ -21,7 +21,6 @@ import           Graphics.Gloss.Interface.Pure.Game
 import           Graphics.Gloss.Raster.Array
 import           System.Random.MWC
 
-data Hole = Hole
 
 newtype World a = World { getWorld :: Array V DIM2 a }
 
@@ -88,10 +87,10 @@ downRow (Z :. h' :. _) (Z :. h :. _)
 mooreNeighborhood :: DIM2 -> DIM2 -> [DIM2]
 mooreNeighborhood extent pos =
     let [xp, yp] = listOfShape pos
-        x1       = leftCol extent pos
+        x1       = leftCol  extent pos
         x2       = rightCol extent pos
-        y1       = upRow extent pos
-        y2       = downRow extent pos
+        y1       = upRow    extent pos
+        y2       = downRow  extent pos
     in  map (uncurry ix2) [ (y1, x1), (yp, x1), (y2, x1)
                           , (y1, xp),           (y2, xp)
                           , (y1, x2), (yp, x2), (y2, x2)
