@@ -24,17 +24,21 @@ import           System.Random.MWC
 
 newtype World a = World { getWorld :: Array V DIM2 a }
 
-data WorldState = Off
-                | On
-                | Dying
-                deriving (Show, Enum, Bounded)
+data WorldState
+    = Off 
+    | On 
+    | Dying 
+    deriving (Show,Enum,Bounded)
 
 scaleFromInt :: Int -> WorldState
 scaleFromInt = toEnum . (`mod` 3)
 
 instance Variate WorldState where
-    uniform = return . scaleFromInt <=< uniform
-    uniformR (f, t) = return . scaleFromInt <=< uniformR (fromEnum f, fromEnum t)
+    uniform = 
+        return . scaleFromInt <=< uniform
+    uniformR (f,t) = 
+        return . scaleFromInt <=<
+        uniformR (fromEnum f, fromEnum t)
 
 type LifeWorld = World WorldState
 
