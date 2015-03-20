@@ -10,8 +10,8 @@ module Main where
 -- [ ] Settings for initial distribution
 
 import           Control.Applicative
-import           Control.Lens
 import           Control.Monad
+import           Control.Monad.Identity
 import           Data.Array.Repa                    hiding (map, (++))
 import qualified Data.Array.Repa                    as R
 import           Data.Array.Repa.Repr.Vector
@@ -39,8 +39,8 @@ instance Variate WorldState where
 type LifeWorld = World WorldState
 
 data LifeCast = LifeCast
-              { _running :: Bool
-              , _world   :: LifeWorld
+              { running :: Bool
+              , world   :: LifeWorld
               }
 
 -- Settings
@@ -53,14 +53,6 @@ worldWidth = 500
 
 worldHeight :: Int
 worldHeight = 309
-
--- Lenses
-
-world :: Lens' LifeCast LifeWorld
-world f (LifeCast r w) = fmap (LifeCast r) (f w)
-
-running :: Lens' LifeCast Bool
-running f (LifeCast r w) = fmap (`LifeCast` w) (f r)
 
 -- | Moore neighborhood
 
@@ -108,15 +100,17 @@ colorWorld = R.map cellColor . getWorld
 
 -- | Generating the next generation
 
-step :: LifeWorld -> IO LifeWorld
-step w = fmap World . computeP . R.traverse (getWorld w) id $ \getter pos ->
+step :: LifeWorld -> LifeWorld
+step w = World . runIdentity . computeP . R.traverse w' id $ \getter pos ->
       conway (getter pos) . length . filter isAlive . map getter
-    $ mooreNeighborhood worldExtent pos
-    where worldExtent = extent $ getWorld w
+    $ mooreNeighborhood wextent pos
+    where
+        w'      = getWorld w
+        wextent = extent w'
 
-stepCast :: LifeCast -> IO LifeCast
-stepCast lc@(LifeCast True  w) = LifeCast True <$> step w
-stepCast lc@(LifeCast False _) = return lc
+stepCast :: LifeCast -> LifeCast
+stepCast lc@(LifeCast True  w) = LifeCast True $ step w
+stepCast lc@(LifeCast False _) = lc
 
 -- Rules
 
@@ -137,19 +131,20 @@ randomWorld w h = withSystemRandom . asGenIO $ \gen ->
         World . fromVector (ix2 h w)
     <$> (uniformVector gen (w * h) :: IO (V.Vector WorldState))
 
-onEvent :: Event -> LifeCast -> IO LifeCast
-onEvent (EventKey (SpecialKey KeySpace) Up _ _) = return . over running not
-onEvent _                                       = return
+onEvent :: Event -> LifeCast -> LifeCast
+onEvent (EventKey (SpecialKey KeySpace) Up _ _) lc =
+    lc { running = not (running lc) }
+onEvent _ lc = lc
 
 main :: IO ()
 main = do
     initial <- LifeCast False <$> randomWorld worldWidth worldHeight
-    playArrayIO (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
-                (worldScale, worldScale)
-                10
-                initial
-                (return . colorWorld . _world)
-                onEvent
-                (const stepCast)
+    playArray (InWindow "Life" (tow worldWidth, tow worldHeight) (0, 0))
+              (worldScale, worldScale)
+              10
+              initial
+              (colorWorld . world)
+              onEvent
+              (const stepCast)
     where tow = (*worldScale)
 
