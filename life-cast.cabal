@@ -20,7 +20,7 @@ executable life-cast
   -- other-modules:       
   -- other-extensions:    
   ghc-options:         -O2 -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base >=4.6 && <4.8
+  build-depends:       base >=4.6 && <4.9
                      , mtl
                      , text
                      , repa
